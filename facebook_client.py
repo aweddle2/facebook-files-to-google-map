@@ -21,16 +21,13 @@ class FacebookClient():
         return self.driver.find_elements(
             By.XPATH, "//div[@class='x6s0dn4 x78zum5 x1y1aw1k x1sxyh0 xwib8y2 xurb0ha']")
 
-    def getFilesForGroup(self, groupId: str, filter=None):
+    def getFilesForGroup(self, groupId: str, downloadDirectory: str, filter=None):
 
         groupFilesUrl = self.facebookUrl+'/groups/'+groupId+'/files/files'
-        downloadDirectory = os.getcwd()+'/files/'+groupId
 
         options = webdriver.ChromeOptions()
         options.add_argument("--disable-notifications")
         options.add_argument("--disable-popup-blocking")
-        shutil.rmtree(downloadDirectory, ignore_errors=True)
-        os.makedirs(downloadDirectory)
         prefs = {}
         prefs["profile.default_content_settings.popups"] = 0
         prefs["download.default_directory"] = downloadDirectory
@@ -93,7 +90,7 @@ class FacebookClient():
                       originalPostATag.get_attribute('href'))
             except Exception as e:
                 # print("error, skipping file")
-                # print(e)
+                print(e)
                 pass
 
         self.driver.quit()
