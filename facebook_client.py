@@ -1,10 +1,8 @@
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
-import shutil
-
 import time
-import os
+from models.facebook_file import FacebookFile
 
 
 class FacebookClient():
@@ -66,6 +64,7 @@ class FacebookClient():
             if (fileElementCount == newFileElementCount):
                 keepScrolling = False
 
+        returnValue = []
         for fileElement in self.__getFileElements():
             try:
                 # Get the download link
@@ -82,15 +81,21 @@ class FacebookClient():
                 anchorTags = linkElement.find_elements(By.TAG_NAME, 'a')
                 # First one is the download link and should be the same as the above a
                 downloadATag = anchorTags[0]
-                downloadATag.click()
                 # Second one is the original post which we will add to the google map once we get there.
                 originalPostATag = anchorTags[1]
 
-                print(fileNameLink.text+" : " +
-                      originalPostATag.get_attribute('href'))
+                facebookFile = FacebookFile()
+                facebookFile.filename = fileNameLink.text
+                facebookFile.originalPostUrl = originalPostATag.get_attribute(
+                    'href')
+                returnValue.append(facebookFile)
+
+                downloadATag.click()
+
             except Exception as e:
-                # print("error, skipping file")
                 print(e)
                 pass
 
         self.driver.quit()
+
+        return returnValue
