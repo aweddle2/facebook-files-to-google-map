@@ -1,6 +1,8 @@
-from selenium import webdriver
+from selenium.webdriver import Chrome, ChromeOptions
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+
 import time
 from os import listdir
 from os.path import isfile, join
@@ -11,6 +13,7 @@ class GaiaGpsClient():
     password = ''
     gaiaGpsUrl = 'https://www.gaiagps.com/'
     driver = None
+    wait = None
 
     def __init__(self, username: str, password: str):
         self.username = username
@@ -18,12 +21,12 @@ class GaiaGpsClient():
 
     def __login(self):
 
-        options = webdriver.ChromeOptions()
+        options = ChromeOptions()
         options.add_argument("--disable-notifications")
         options.add_argument("--disable-popup-blocking")
 
-        self.driver = webdriver.Chrome(options)
-        actions = ActionChains(self.driver)
+        self.driver = Chrome(options)
+        self.wait = WebDriverWait(self.driver, timeout=10)
 
         self.driver.get(self.gaiaGpsUrl)
 
@@ -45,10 +48,13 @@ class GaiaGpsClient():
             By.XPATH, '//button[contains(text(), "Log In") and @type="submit"]')
         secondLoginButton.click()
 
-        time.sleep(5)
+        time.sleep(10)
 
     def importFromLocalFiles(self, path: str, gaiaGpsFolderName: str):
         self.__login()
+
+        self.wait.until(EC.element_to_be_clickable(
+            (By.XPATH, '//span[contains(text(), "Saved Items")]')))
 
         # TODO Better error handling here
         # Lets check there's a GaiaGS folder of the correct name
@@ -57,17 +63,18 @@ class GaiaGpsClient():
             By.XPATH, '//span[contains(text(), "Saved Items")]')
         savedItemsSpan.click()
 
+        # Wait for the animation to run
+        time.sleep(2)
+
+        self.wait.until(EC.element_to_be_clickable(
+            (By.XPATH, '//span[contains(text(), "'+gaiaGpsFolderName+'")]')))
+
         folderNameSpan = self.driver.find_element(
             By.XPATH, '//span[contains(text(), "'+gaiaGpsFolderName+'")]')
         folderNameSpan.click()
 
         # If we get here then we can upload
-        # We need to impor then move
-
-        # Open Import Dialog
-        importDataMenuItemSpan = self.driver.find_element(
-            By.XPATH, '//span[contains(text(), "Import Data")]')
-        importDataMenuItemSpan.click()
+        # We need to import then move
 
         # Generate the string to send to the upload input
         allFilePaths = ''
