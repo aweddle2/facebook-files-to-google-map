@@ -1,13 +1,14 @@
 from dotenv import load_dotenv
 from facebook_client import FacebookClient
+from gaia_gps_client import GaiaGpsClient
 from file_manager import FileManager
 
 import os
 
 load_dotenv()
 groupId = os.getenv('FACEBOOK_GROUP_ID')
-email = os.getenv('FACEBOOK_USERNAME')
-password = os.getenv('FACEBOOK_PASSWORD')
+facebookEmail = os.getenv('FACEBOOK_USERNAME')
+facebookPassword = os.getenv('FACEBOOK_PASSWORD')
 
 filesBaseDirectory = os.getcwd()+'/files/'
 
@@ -16,5 +17,15 @@ fileManager = FileManager(filesBaseDirectory)
 fileManager.emptyDirectory(groupId)
 
 folderForGroup = filesBaseDirectory+groupId
-facebookClient = FacebookClient(email, password)
-facebookClient.getFilesForGroup(groupId, folderForGroup)
+facebookClient = FacebookClient(facebookEmail, facebookPassword)
+# groupFiles = facebookClient.getFilesForGroup(groupId, folderForGroup)
+
+# for groupFile in groupFiles:
+#    print(groupFile.filename+" : "+groupFile.originalPostUrl)
+
+gaiaGpsEmail = os.getenv('GAIAGPS_USERNAME')
+gaiaGpsPassword = os.getenv('GAIAGPS_PASSWORD')
+
+
+gaiaGpsClient = GaiaGpsClient(gaiaGpsEmail, gaiaGpsPassword)
+gaiaGpsClient.importFromLocalFiles(folderForGroup, groupId)
