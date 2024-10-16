@@ -13,19 +13,18 @@ facebookPassword = os.getenv('FACEBOOK_PASSWORD')
 filesBaseDirectory = os.getcwd()+'/files/'
 
 fileManager = FileManager(filesBaseDirectory)
-
+fileManager.removeSpacesFromFileNames(groupId)
 fileManager.emptyDirectory(groupId)
 
 folderForGroup = filesBaseDirectory+groupId
 facebookClient = FacebookClient(facebookEmail, facebookPassword)
-# groupFiles = facebookClient.getFilesForGroup(groupId, folderForGroup)
+groupFiles = facebookClient.getFilesForGroup(groupId, folderForGroup)
 
-# for groupFile in groupFiles:
-#    print(groupFile.filename+" : "+groupFile.originalPostUrl)
+for groupFile in groupFiles:
+    print(groupFile.filename+" : "+groupFile.originalPostUrl)
 
 gaiaGpsEmail = os.getenv('GAIAGPS_USERNAME')
 gaiaGpsPassword = os.getenv('GAIAGPS_PASSWORD')
-
 
 gaiaGpsClient = GaiaGpsClient(gaiaGpsEmail, gaiaGpsPassword)
 gaiaGpsClient.importFromLocalFiles(folderForGroup, groupId)
