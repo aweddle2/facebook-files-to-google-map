@@ -3,6 +3,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import NoSuchElementException
 
 import time
 import os
@@ -17,6 +19,7 @@ class GaiaGpsClient():
     driver = None
     wait = None
     actions = None
+    fileExtensions = ['.GPX', '.KML', '.KMZ', '.FIT', 'GeoJSON']
 
     def __init__(self, username: str, password: str):
         self.username = username
@@ -29,7 +32,7 @@ class GaiaGpsClient():
         options.add_argument("--disable-popup-blocking")
 
         self.driver = Chrome(options)
-        self.wait = WebDriverWait(self.driver, timeout=10)
+        self.wait = WebDriverWait(self.driver, timeout=30)
         self.actions = ActionChains(self.driver)
 
         self.driver.get(self.gaiaGpsUrl)
@@ -60,41 +63,71 @@ class GaiaGpsClient():
 
         # Generate the string to send to the upload input
         for uploadFile in [f for f in listdir(path) if isfile(join(path, f))]:
+            # lets see if the extension can even be uploaded to GaiaGPS
+            fileName, fileExtension = os.path.splitext(uploadFile)
+            # If it's not then continue to the next file
+            if (fileExtension.upper() not in self.fileExtensions):
+                continue
+
             filePath = path + os.sep + uploadFile.replace(' ', '\ ')
 
             self.wait.until(EC.element_to_be_clickable(
                 (By.XPATH, '//span[contains(text(), "Import Data")]')))
 
             # TODO Better error handling here
-            savedItemsSpan = self.driver.find_element(
-                By.XPATH, '//span[contains(text(), "Import Data")]')
-            savedItemsSpan.click()
+            self.driver.find_element(
+                By.XPATH, '//span[contains(text(), "Import Data")]').click()
 
             # Wait for the animation to run
             time.sleep(2)
 
             # Upload to the hidden input type=file
-            selectFilesInput = self.driver.find_element(
-                By.XPATH, '//input[@type="file"]')
-            selectFilesInput.send_keys(filePath)
+            self.driver.find_element(
+                By.XPATH, '//input[@type="file"]').send_keys(filePath)
+
+            # Wait for the file to be read
+            time.sleep(2)
+
+            # If there's a <h5>Large file import</h5> then deal with that
+            try:
+                self.driver.find_element(
+                    By.XPATH, '//h5[contains(text(), "Large file import")]')
+
+                # Import just the tracks
+                self.wait.until(EC.element_to_be_clickable(
+                    (By.XPATH, '//input[@name="tracks"]')))
+                self.driver.find_element(
+                    By.XPATH, '//input[@name="tracks"]').click()
+                self.wait.until(EC.element_to_be_clickable(
+                    (By.XPATH, '//button[contains(text(),"Import")]')))
+                self.driver.find_element(
+                    By.XPATH, '//button[contains(text(),"Import")]').click()
+            except NoSuchElementException:
+                pass
 
             # Click Save button
             self.wait.until(EC.element_to_be_clickable(
                 (By.XPATH, '//button[contains(text(),"Save") and contains(text(),"item") ]')))
-            saveXItemsButton = self.driver.find_element(
-                By.XPATH, '//button[contains(text(),"Save") and contains(text(),"item") ]')
-            saveXItemsButton.click()
+            self.driver.find_element(
+                By.XPATH, '//button[contains(text(),"Save") and contains(text(),"item") ]').click()
 
             # Click Change Folder Button
             self.wait.until(EC.element_to_be_clickable(
                 (By.XPATH, '//span[contains(text(), "Change Folder")]')))
-            changeFolderButton = self.driver.find_element(
-                By.XPATH, '//span[contains(text(), "Change Folder")]')
-            changeFolderButton.click()
+            self.driver.find_element(
+                By.XPATH, '//span[contains(text(), "Change Folder")]').click()
 
             # Click the folder for the folder with the same name as the passed in folder name
             self.wait.until(EC.element_to_be_clickable(
-                (By.XPATH, '//span[contains(text(), "'+gaiaGpsFolderName+'")]')))
-            destinationFolderButton = self.driver.find_element(
-                By.XPATH, '//span[contains(text(), "'+gaiaGpsFolderName+'")]')
-            destinationFolderButton.click()
+                (By.XPATH, '//span[contains(text(), "More Folders")]')))
+            self.driver.find_element(
+                By.XPATH, '//span[contains(text(), "More Folders")]').click()
+            self.wait.until(EC.element_to_be_clickable(
+                (By.XPATH, "//input[@placeholder='Search folders']")))
+            self.driver.find_element(
+                By.XPATH, "//input[@placeholder='Search folders']").send_keys(gaiaGpsFolderName)
+            self.wait.until(EC.element_to_be_clickable(
+                (By.XPATH, '//p[contains(text(), "'+gaiaGpsFolderName+'")]/parent::div/following-sibling::div/button[text()="Move"]')))
+
+            self.driver.find_element(
+                By.XPATH, '//p[contains(text(), "'+gaiaGpsFolderName+'")]/parent::div/following-sibling::div/button[text()="Move"]').click()
